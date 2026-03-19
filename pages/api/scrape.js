@@ -129,7 +129,7 @@ async function scrapeTripAdvisor(url) {
 async function scrapeAmazon(url) {
   const asin = extractAmazonAsin(url);
   if (!asin) throw new Error(
-    "ASIN Amazon introuvable. Vérifiez que l\'URL pointe vers une page produit (ex: amazon.fr/dp/B09XXXXXX)."
+    "ASIN Amazon introuvable. Vérifiez que l'URL pointe vers une page produit (ex: amazon.fr/dp/B09XXXXXX)."
   );
 
   // Détecte le pays depuis le domaine Amazon
@@ -221,8 +221,7 @@ function extractGooglePlaceId(url) {
 async function scrapeGoogle(url) {
   const placeId = extractGooglePlaceId(url);
   if (!placeId) throw new Error(
-    'Impossible d'extraire l'identifiant Google depuis l'URL. ' +
-    'Copiez l'URL complète depuis la barre d'adresse de Google Maps (pas le lien de partage).'
+    "Impossible d'extraire l'identifiant Google depuis l'URL. Copiez l'URL complete depuis la barre d'adresse Google Maps (pas le lien de partage)."
   );
 
   console.log('[Google] place_id:', placeId);
