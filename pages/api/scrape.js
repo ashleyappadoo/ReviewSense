@@ -236,7 +236,7 @@ async function scrapeGoogle(url) {
   for (let page = 1; page <= MAX_PAGES; page++) {
     const offset = (page - 1) * 20;
     const response = await fetch(
-      `https://local-business-data.p.rapidapi.com/business-reviews-v2?business_id=${encodeURIComponent(placeId)}&limit=20&sort_by=most_relevant&region=fr&language=fr&offset=${offset}&fields=reviews`,
+      `https://local-business-data.p.rapidapi.com/business-reviews-v2?business_id=${encodeURIComponent(placeId)}&limit=20&sort_by=most_relevant&region=us&language=en&offset=${offset}`,
       {
         headers: {
           'X-RapidAPI-Key':  RAPIDAPI_KEY,
