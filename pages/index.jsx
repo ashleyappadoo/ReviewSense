@@ -31,11 +31,11 @@ function formatDate(iso) {
 }
 
 const ANALYZING_STEPS = [
-  { icon: '🔗', label: 'Connexion à la plateforme…' },
-  { icon: '📥', label: 'Extraction des avis…' },
-  { icon: '📄', label: 'Récupération des pages…' },
-  { icon: '🧠', label: 'Analyse par ReviewSense…' },
-  { icon: '📊', label: 'Génération du rapport…' },
+  { icon: '🔗', label: {lang==='fr'?'Connexion à la plateforme…':'Connecting to platform…'} },
+  { icon: '📥', label: {lang==='fr'?'Extraction des avis…':'Extracting reviews…'} },
+  { icon: '📄', label: {lang==='fr'?'Récupération des pages…':'Retrieving pages…'} },
+  { icon: '🧠', label: {lang==='fr'?'Analyse par ReviewSense…':'Analyzing with ReviewSense…'} },
+  { icon: '📊', label: {lang==='fr'?'Génération du rapport…':'Generating report…'} },
 ];
 
 export default function Home() {
@@ -333,6 +333,9 @@ export default function Home() {
         .cta-btn:hover{transform:translateY(-2px);box-shadow:0 14px 42px rgba(124,92,191,0.45)}
         .cta-btn-sm{padding:10px 22px;font-size:0.9rem}
 
+        .lang-toggle{display:flex;align-items:center;background:rgba(255,255,255,0.7);border:1.5px solid var(--border);border-radius:40px;padding:3px;gap:2px}
+        .lang-btn{padding:5px 12px;border-radius:30px;border:none;font-size:0.8rem;font-weight:700;cursor:pointer;transition:all 0.2s;background:transparent;color:var(--muted)}
+        .lang-btn.active{background:linear-gradient(135deg,#7c5cbf,#d4609a);color:white;box-shadow:0 2px 8px rgba(124,92,191,0.3)}
         @media(max-width:700px){
           .bento{grid-template-columns:1fr}.bc.full{grid-column:1}
           nav{padding:16px 20px}
@@ -351,18 +354,22 @@ export default function Home() {
           <div className="logo" onClick={reset}>Review<span>Sense</span></div>
           <div className="nav-right">
             <button className={`nav-btn ${step === 'history' ? 'active' : ''}`} onClick={() => setStep('history')}>
-              📋 {history.length > 0 ? `Historique (${history.length})` : 'Historique'}
+              📋 {history.length > 0 ? `${lang==='fr'?'Historique':'History'} (${history.length})` : (lang==='fr'?'Historique':'History')}
             </button>
-            <div className="nav-badge">✦ IA</div>
+            <div className="lang-toggle">
+              <button className={`lang-btn ${lang==='fr'?'active':''}`} onClick={()=>setLang('fr')}>🇫🇷 FR</button>
+              <button className={`lang-btn ${lang==='en'?'active':''}`} onClick={()=>setLang('en')}>🇬🇧 EN</button>
+            </div>
+            <div className="nav-badge">{lang==='fr'?'✦ IA':'✦ AI'}</div>
           </div>
         </nav>
 
         {/* ── LANDING ── */}
         {step === 'landing' && (
           <div className="landing">
-            <div className="hero-tag">✦ Analyse d'avis par IA</div>
-            <h1>Collez une URL.<br /><span className="hl">Obtenez vos insights.</span></h1>
-            <p className="hero-sub">ReviewSense extrait automatiquement vos avis Amazon, Google ou TripAdvisor et génère un rapport actionnable en 30 secondes.</p>
+            <div className="hero-tag">{{lang==='fr'?'✦ Analyse d\'avis par IA':'✦ AI-powered review analysis'}}</div>
+            <h1>{{lang==='fr'?<>Paste a URL.<br /><span className='hl'>Get your insights.</span></>:<>Collez une URL.<br /><span className='hl'>Obtenez vos insights.</span></>}}</h1>
+            <p className="hero-sub">{{lang==='fr'?{lang==='fr'?'ReviewSense extrait automatiquement vos avis Amazon, Google ou TripAdvisor et génère un rapport actionnable en 30 secondes.':'ReviewSense automatically extracts your Amazon, Google or TripAdvisor reviews and generates an actionable report in 30 seconds.'}:'ReviewSense automatically extracts your Amazon, Google or TripAdvisor reviews and generates an actionable report in 30 seconds.'}}</p>
 
             <div className="quick-input-wrap">
               <input
@@ -391,10 +398,10 @@ export default function Home() {
               <div className="platform-pill">🦉 TripAdvisor</div>
             </div>
             <div className="features-row">
-              <div className="feat-pill">⚡ Extraction automatique</div>
-              <div className="feat-pill">📄 Multi-pages</div>
-              <div className="feat-pill">🎯 Actions concrètes</div>
-              <div className="feat-pill">💾 Historique local</div>
+              <div className="feat-pill">{{lang==='fr'?{lang==='fr'?'⚡ Extraction automatique':'⚡ Auto extraction'}:'⚡ Auto extraction'}}</div>
+              <div className="feat-pill">{'📄 Multi-pages'}</div>
+              <div className="feat-pill">{{lang==='fr'?{lang==='fr'?'🎯 Actions concrètes':'🎯 Concrete actions'}:'🎯 Concrete actions'}}</div>
+              <div className="feat-pill">{{lang==='fr'?{lang==='fr'?'💾 Historique local':'💾 Local history'}:'💾 Local history'}}</div>
             </div>
           </div>
         )}
@@ -403,8 +410,8 @@ export default function Home() {
         {step === 'setup' && (
           <div className="setup">
             <div className="page-header">
-              <div className="page-eyebrow">Configuration</div>
-              <h2>Paramètres de l'analyse</h2>
+              <div className="page-eyebrow">{{lang==='fr'?{lang==='fr'?'Configuration':'Setup'}:'Setup'}}</div>
+              <h2>{{lang==='fr'?'Paramètres de l\'analyse':'Analysis settings'}}</h2>
             </div>
 
             {/* URL card */}
@@ -414,7 +421,7 @@ export default function Home() {
                 <input
                   className="url-input"
                   type="url"
-                  placeholder="https://..."
+                  placeholder='https://...'
                   value={url}
                   onChange={e => setUrl(e.target.value)}
                 />
@@ -442,7 +449,7 @@ export default function Home() {
 
             {/* Sector */}
             <div className="card">
-              <div className="card-title">🏪 Secteur <span style={{fontSize:'0.75rem',fontWeight:'400',textTransform:'none',letterSpacing:0,marginLeft:'6px',opacity:0.7}}>(optionnel, améliore l'analyse)</span></div>
+              <div className="card-title">🏪 Secteur <span style={{fontSize:'0.75rem',fontWeight:'400',textTransform:'none',letterSpacing:0,marginLeft:'6px',opacity:0.7}}>{{lang==='fr'?{lang==='fr'?"(optionnel, améliore l'analyse)":'(optional, improves analysis)'}:'(optional, improves analysis)'}}</span></div>
               <div className="pill-grid">
                 {SECTORS.map(s => (
                   <button key={s.id} className={`pill-option ${sector === s.id ? 'selected' : ''}`} onClick={() => setSector(sector === s.id ? '' : s.id)}>
@@ -452,27 +459,18 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Language */}
-            <div className="card">
-              <div className="card-title">🌍 Langue du rapport</div>
-              <div className="pill-grid">
-                <button className={`pill-option ${lang==='fr'?'selected':''}`} onClick={()=>setLang('fr')}>🇫🇷 Français</button>
-                <button className={`pill-option ${lang==='en'?'selected':''}`} onClick={()=>setLang('en')}>🇬🇧 English</button>
-              </div>
-            </div>
-
             {/* Business name */}
             <div className="card">
-              <div className="card-title">🏷️ Nom de l'établissement <span style={{fontSize:'0.75rem',fontWeight:'400',textTransform:'none',letterSpacing:0,marginLeft:'6px',opacity:0.7}}>(optionnel)</span></div>
+              <div className="card-title">🏷️ Nom de l'établissement <span style={{fontSize:'0.75rem',fontWeight:'400',textTransform:'none',letterSpacing:0,marginLeft:'6px',opacity:0.7}}>{{lang==='fr'?{lang==='fr'?'(optionnel)':'(optional)'}:'(optional)'}}</span></div>
               <div className="form-field">
                 <input
                   type="text"
-                  placeholder="Laissez vide pour détection automatique"
+                  placeholder={lang==='fr'?{lang==='fr'?'Laissez vide pour détection automatique':'Leave blank for auto detection'}:'Leave blank for auto detection'}
                   value={businessName}
                   onChange={e => setBusinessName(e.target.value)}
                 />
               </div>
-              <p className="field-hint">Si vide, ReviewSense tentera de détecter le nom depuis la page.</p>
+              <p className="field-hint">{{lang==='fr'?{lang==='fr'?'Si vide, ReviewSense tentera de détecter le nom depuis la page.':'If empty, ReviewSense will try to detect the name from the page.'}:'If empty, ReviewSense will try to detect the name from the page.'}}</p>
             </div>
 
             {error && <div className="error-msg">⚠️ {error}</div>}
@@ -487,7 +485,7 @@ export default function Home() {
         {step === 'analyzing' && (
           <div className="analyzing">
             <div className="pulse-orb">🔍</div>
-            <h2>Analyse en cours…</h2>
+            <h2>{{lang==='fr'?{lang==='fr'?'Analyse en cours…':'Analyzing…'}:'Analyzing…'}}</h2>
             <div className="steps-list">
               {ANALYZING_STEPS.map((s, i) => (
                 <div key={i} className={`step-item ${i < analyzingStep ? 'done' : i === analyzingStep ? 'active' : ''}`}>
@@ -503,10 +501,10 @@ export default function Home() {
         {step === 'history' && (
           <div className="history-page">
             <div className="page-title-row">
-              <h2 className="page-h2">Mes analyses</h2>
-              <button className="cta-btn cta-btn-sm" onClick={() => setStep('setup')}>+ Nouvelle analyse</button>
+              <h2 className="page-h2">{lang==='fr'?'Mes analyses':'My analyses'}</h2>
+              <button className="cta-btn cta-btn-sm" onClick={() => setStep('setup')}>{lang==='fr'?'+ Nouvelle analyse':'+ New analysis'}</button>
             </div>
-            <p className="page-sub">{history.length} analyse{history.length !== 1 ? 's' : ''} sauvegardée{history.length !== 1 ? 's' : ''} dans ce navigateur</p>
+            <p className="page-sub">{history.length} {lang==='fr'?`${history.length} analyse${history.length!==1?'s':''} sauvegardée${history.length!==1?'s':''} dans ce navigateur`:`${history.length} analysis${history.length!==1?'es':''} saved in this browser`}</p>
 
             {history.length === 0 ? (
               <div className="history-empty">
@@ -547,24 +545,24 @@ export default function Home() {
           <div className="results">
             <div className="results-header">
               <div className="rh-left">
-                <h2>Rapport d'analyse</h2>
+                <h2>{{lang==='fr'?{lang==='fr'?"Rapport d'analyse":'Analysis Report'}:'Analysis Report'}}</h2>
                 <div className="rh-meta">
                   {currentMeta?.platform && <span className="rh-badge">{getPlatformInfo(currentMeta.platform).icon} {getPlatformInfo(currentMeta.platform).label}</span>}
                   {currentMeta?.sector && <span className="rh-badge">{getSectorIcon(currentMeta.sector)} {getSectorLabel(currentMeta.sector)}</span>}
-                  {currentMeta?.totalReviews && <span className="rh-badge">📝 {currentMeta.totalReviews} avis analysés</span>}
+                  {currentMeta?.totalReviews && <span className="rh-badge">📝 {currentMeta.totalReviews} {lang==='fr'?'avis analysés':'reviews analyzed'}</span>}
                   {currentMeta?.avgRating && <span className="rh-badge">⭐ {currentMeta.avgRating}/5 brut</span>}
                 </div>
               </div>
               <div className="rh-actions">
-                <button className="ghost-btn" onClick={() => setStep('history')}>📋 Historique</button>
-                <button className="ghost-btn" onClick={() => setStep('setup')}>+ Nouvelle</button>
+                <button className="ghost-btn" onClick={() => setStep('history')}>{{lang==='fr'?{lang==='fr'?'📋 Historique':'📋 History'}:'📋 History'}}</button>
+                <button className="ghost-btn" onClick={() => setStep('setup')}>{{lang==='fr'?{lang==='fr'?'+ Nouvelle':'+ New'}:'+ New'}}</button>
               </div>
             </div>
 
             <div className="bento">
               {/* Score */}
               <div className="bc purple">
-                <div className="bc-label"><span className="bc-icon">📊</span> Score satisfaction</div>
+                <div className="bc-label"><span className="bc-icon">📊</span> {lang==='fr'?'Score satisfaction':'Satisfaction score'}</div>
                 <div className="score-num" style={{color: getScoreColor(results.score)}}>
                   {results.score}<span className="score-denom">/10</span>
                 </div>
@@ -573,14 +571,14 @@ export default function Home() {
 
               {/* Résumé */}
               <div className="bc mint">
-                <div className="bc-label"><span className="bc-icon">📝</span> Résumé général</div>
+                <div className="bc-label"><span className="bc-icon">📝</span> {lang==='fr'?'Résumé général':'General summary'}</div>
                 <p style={{fontSize:'0.91rem',color:'var(--text)',lineHeight:'1.65'}}>{results.summary}</p>
               </div>
 
               {/* Key themes */}
               {results.keyThemes?.length > 0 && (
                 <div className="bc full yellow">
-                  <div className="bc-label"><span className="bc-icon">🏷️</span> Thèmes clés détectés</div>
+                  <div className="bc-label"><span className="bc-icon">🏷️</span> {lang==='fr'?'Thèmes clés détectés':'Key themes detected'}</div>
                   <div className="themes-wrap">
                     {results.keyThemes.map((t, i) => <div key={i} className="theme-tag">{t}</div>)}
                   </div>
@@ -589,7 +587,7 @@ export default function Home() {
 
               {/* Frictions */}
               <div className="bc rose">
-                <div className="bc-label"><span className="bc-icon">🚨</span> Points de friction</div>
+                <div className="bc-label"><span className="bc-icon">🚨</span> {lang==='fr'?'Points de friction':'Friction points'}</div>
                 <ul className="ilist">
                   {results.painPoints?.map((p, i) => (
                     <li key={i} className="iitem"><span className="dot dr" />{p}</li>
@@ -599,7 +597,7 @@ export default function Home() {
 
               {/* Positifs */}
               <div className="bc mint">
-                <div className="bc-label"><span className="bc-icon">✨</span> Points forts</div>
+                <div className="bc-label"><span className="bc-icon">✨</span> {lang==='fr'?'Points forts':'Strengths'}</div>
                 <ul className="ilist">
                   {results.positives?.map((p, i) => (
                     <li key={i} className="iitem"><span className="dot dg" />{p}</li>
@@ -609,13 +607,13 @@ export default function Home() {
 
               {/* Verbatims */}
               <div className="bc full">
-                <div className="bc-label"><span className="bc-icon">💬</span> Verbatims clients</div>
+                <div className="bc-label"><span className="bc-icon">💬</span> {lang==='fr'?'Verbatims clients':'Customer quotes'}</div>
                 {results.verbatims?.map((v, i) => <div key={i} className="verbatim">"{v}"</div>)}
               </div>
 
               {/* Actions */}
               <div className="bc full purple">
-                <div className="bc-label"><span className="bc-icon">🎯</span> Actions recommandées</div>
+                <div className="bc-label"><span className="bc-icon">🎯</span> {lang==='fr'?'Actions recommandées':'Recommended actions'}</div>
                 {results.actions?.map((a, i) => (
                   <div key={i} className="action-row">
                     <div className="action-num">{i + 1}</div>
@@ -638,7 +636,7 @@ export default function Home() {
 
               {/* Opportunités */}
               <div className="bc full peach">
-                <div className="bc-label"><span className="bc-icon">💡</span> Opportunités identifiées</div>
+                <div className="bc-label"><span className="bc-icon">💡</span> {lang==='fr'?'Opportunités identifiées':'Identified opportunities'}</div>
                 <ul className="ilist">
                   {results.opportunities?.map((o, i) => (
                     <li key={i} className="iitem"><span className="dot db" />{o}</li>
