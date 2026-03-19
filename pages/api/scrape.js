@@ -193,65 +193,90 @@ async function scrapeAmazon(url) {
 
   return reviews;
 }
-// ─── Scraper Google (Outscraper) ──────────────────────────────────────────────
-// Query = nom établissement + ville (pas l'URL Google Maps directement)
-// On extrait le nom depuis l'URL Maps puis on le passe à Outscraper
+// ─── Scraper Google (Local Business Data) ────────────────────────────────────
+// API : Local Business Data (v3) sur RapidAPI
+// Host : local-business-data.p.rapidapi.com
+// Endpoint : GET /business-reviews-v2?business_id=PLACE_ID
+// Le place_id (ChIJ...) est extrait depuis l'URL Google Maps
+
+function extractGooglePlaceId(url) {
+  // Format 1 : !1sChIJxxxxxxxxxxxxxxxx dans le segment data=
+  const match1 = url.match(/!1s(ChIJ[a-zA-Z0-9_-]+)/);
+  if (match1) return match1[1];
+
+  // Format 2 : place_id dans query param (?place_id=ChIJ...)
+  try {
+    const u = new URL(url);
+    const pid = u.searchParams.get('place_id');
+    if (pid) return pid;
+  } catch {}
+
+  // Format 3 : 0x...CID format (hex business id)
+  const match3 = url.match(/(0x[a-f0-9]+:0x[a-f0-9]+)/i);
+  if (match3) return match3[1];
+
+  return null;
+}
 
 async function scrapeGoogle(url) {
-  const placeName = extractGooglePlaceName(url);
-  if (!placeName) throw new Error(
-    'Impossible d\'extraire le nom de l\'établissement depuis l\'URL Google Maps. ' +
-    'Copiez l\'URL directement depuis la barre d\'adresse sur maps.google.com.'
+  const placeId = extractGooglePlaceId(url);
+  if (!placeId) throw new Error(
+    'Impossible d'extraire l'identifiant Google depuis l'URL. ' +
+    'Copiez l'URL complète depuis la barre d'adresse de Google Maps (pas le lien de partage).'
   );
 
-  const reviews = [];
-  const encodedQuery = encodeURIComponent(placeName);
+  console.log('[Google] place_id:', placeId);
 
-  for (let skip = 0; skip < MAX_PAGES * 20; skip += 20) {
+  const reviews = [];
+
+  for (let page = 1; page <= MAX_PAGES; page++) {
+    const offset = (page - 1) * 20;
     const response = await fetch(
-      `https://local-businesses-by-outscraper.p.rapidapi.com/maps/reviews-v3` +
-      `?query=${encodedQuery}&reviewsLimit=20&skip=${skip}&language=fr&region=FR`,
+      `https://local-business-data.p.rapidapi.com/business-reviews-v2?business_id=${encodeURIComponent(placeId)}&limit=20&sort_by=most_relevant&region=fr&language=fr&offset=${offset}`,
       {
         headers: {
           'X-RapidAPI-Key':  RAPIDAPI_KEY,
-          'X-RapidAPI-Host': 'local-businesses-by-outscraper.p.rapidapi.com',
+          'X-RapidAPI-Host': 'local-business-data.p.rapidapi.com',
         },
       }
     );
 
     if (!response.ok) {
-      if (skip === 0) throw new Error(`Google Reviews API erreur ${response.status}`);
+      if (page === 1) throw new Error(`Google Reviews API erreur ${response.status}`);
       break;
     }
 
     const data = await response.json();
+    console.log('[Google] page', page, 'keys:', Object.keys(data || {}));
 
-    // Structure Outscraper : data[0] ou data.data[0] = établissement
-    const placeData   = data?.data?.[0] || data?.[0];
-    const pageReviews = placeData?.reviews || placeData?.reviews_data || [];
+    // Local Business Data retourne data.data[] avec les reviews
+    const pageReviews = data?.data || data?.reviews || data?.results || (Array.isArray(data) ? data : []);
+    console.log('[Google] page', page, 'reviews:', pageReviews.length);
+
+    // Récupère le nom de l'établissement si disponible
+    if (page === 1 && data?.business_name) reviews._businessName = data.business_name;
+    if (page === 1 && data?.name) reviews._businessName = data.name;
 
     if (!pageReviews.length) break;
 
     for (const r of pageReviews) {
-      const text = r.review_text || r.text || r.snippet || '';
+      const text = r.review_text || r.text || r.snippet || r.body || r.content || '';
       if (!text.trim()) continue;
       reviews.push({
-        author: r.author_title || r.name || 'Anonyme',
-        rating: parseFloat(r.review_rating || r.rating || 0),
+        author: r.author_title || r.reviewer_name || r.name || 'Anonyme',
+        rating: parseFloat(r.review_rating || r.rating || r.stars || 0),
         title:  '',
         text,
-        date:   r.review_datetime_utc || r.date || '',
+        date:   r.review_datetime_utc || r.published_at || r.date || '',
       });
     }
 
-    if (skip === 0 && placeData?.name) reviews._businessName = placeData.name;
-    if (reviews.length >= MAX_REVIEWS)  break;
-    if (pageReviews.length < 20)        break;
+    if (reviews.length >= MAX_REVIEWS) break;
+    if (pageReviews.length < 20) break;
   }
 
   return reviews;
 }
-
 // ─── Normalisation pour Claude ────────────────────────────────────────────────
 
 function reviewsToText(reviews) {
