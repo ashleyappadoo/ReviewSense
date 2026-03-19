@@ -200,20 +200,25 @@ async function scrapeAmazon(url) {
 // Le place_id (ChIJ...) est extrait depuis l'URL Google Maps
 
 function extractGooglePlaceId(url) {
-  // Format 1 : !1sChIJxxxxxxxxxxxxxxxx dans le segment data=
-  const match1 = url.match(/!1s(ChIJ[a-zA-Z0-9_-]+)/);
+  // Format 1 : 0x hex CID dans data= (ex: !1s0xd5525b3c22b39a9:0xdcb57f3098cce1aa)
+  // C'est le format le plus courant sur google.fr/maps
+  const match1 = url.match(/!1s(0x[a-f0-9]+:0x[a-f0-9]+)/i);
   if (match1) return match1[1];
 
-  // Format 2 : place_id dans query param (?place_id=ChIJ...)
+  // Format 2 : ChIJ place_id dans data= (ex: !1sChIJxxxxxxxx)
+  const match2 = url.match(/!1s(ChIJ[a-zA-Z0-9_-]+)/);
+  if (match2) return match2[1];
+
+  // Format 3 : place_id dans query param
   try {
     const u = new URL(url);
     const pid = u.searchParams.get('place_id');
     if (pid) return pid;
   } catch {}
 
-  // Format 3 : 0x...CID format (hex business id)
-  const match3 = url.match(/(0x[a-f0-9]+:0x[a-f0-9]+)/i);
-  if (match3) return match3[1];
+  // Format 4 : 0x hex CID seul dans l'URL (sans !1s)
+  const match4 = url.match(/(0x[a-f0-9]{10,}:0x[a-f0-9]{10,})/i);
+  if (match4) return match4[1];
 
   return null;
 }
