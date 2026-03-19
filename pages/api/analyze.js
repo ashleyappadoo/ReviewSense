@@ -18,7 +18,8 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'Configuration serveur manquante (ANTHROPIC_API_KEY).' });
   }
 
-  const { reviewsText, sector, platform, businessName, totalReviews, avgRating } = req.body;
+  const { reviewsText, sector, platform, businessName, totalReviews, avgRating, lang } = req.body;
+  const language = lang === 'en' ? 'English' : 'French';
 
   if (!reviewsText?.trim()) {
     return res.status(400).json({ error: 'Aucun avis à analyser.' });
@@ -41,15 +42,15 @@ export default async function handler(req, res) {
     avgRating ? `note moyenne brute: ${avgRating}/5` : '',
   ].filter(Boolean).join(', ');
 
-  const prompt = `Tu es un expert en analyse de la voix client pour le secteur ${sectorContext}.
+  const prompt = `You are a customer voice analysis expert for the ${sectorContext} sector.
 
-Analyse les avis clients suivants pour l'établissement "${businessName || 'cet établissement'}" provenant de ${platformName}.
-${statsContext ? `Contexte statistique: ${statsContext}.` : ''}
+Analyze the following customer reviews for "${businessName || 'this business'}" from ${platformName}.
+${statsContext ? `Statistical context: ${statsContext}.` : ''}
 
-AVIS CLIENTS :
+CUSTOMER REVIEWS:
 ${reviewsText}
 
-Réponds UNIQUEMENT avec un objet JSON valide (sans markdown, sans backticks) avec exactement cette structure :
+Respond ONLY with a valid JSON object (no markdown, no backticks). All text values must be written in ${language}. Use this exact structure:
 {
   "score": <entier entre 1 et 10 représentant la satisfaction globale>,
   "scoreComment": "<phrase courte contextualisant le score>",
