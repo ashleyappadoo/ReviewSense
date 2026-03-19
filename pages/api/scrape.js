@@ -115,20 +115,20 @@ async function scrapeAmazon(url) {
 }
 
 async function scrapeGoogle(url) {
-  // Using Outscraper Google Maps Reviews API on RapidAPI
-  // API: outscraper.p.rapidapi.com
+  // Using "Local Businesses By Outscraper" on RapidAPI
+  // Host: local-businesses-by-outscraper.p.rapidapi.com
+  // Endpoint: GET /maps/reviews-v3
   const reviews = [];
-
-  // Encode the place URL for the query param
   const encodedUrl = encodeURIComponent(url);
+  const REVIEWS_PER_PAGE = 20;
 
-  for (let skip = 0; skip < MAX_PAGES * 20; skip += 20) {
+  for (let skip = 0; skip < MAX_PAGES * REVIEWS_PER_PAGE; skip += REVIEWS_PER_PAGE) {
     const response = await fetch(
-      `https://outscraper.p.rapidapi.com/maps/reviews-v3?query=${encodedUrl}&reviewsLimit=20&skip=${skip}&sort=mostRelevant&language=fr`,
+      `https://local-businesses-by-outscraper.p.rapidapi.com/maps/reviews-v3?query=${encodedUrl}&reviewsLimit=${REVIEWS_PER_PAGE}&skip=${skip}&sort=mostRelevant&language=fr&region=FR`,
       {
         headers: {
           'X-RapidAPI-Key': RAPIDAPI_KEY,
-          'X-RapidAPI-Host': 'outscraper.p.rapidapi.com',
+          'X-RapidAPI-Host': 'local-businesses-by-outscraper.p.rapidapi.com',
         },
       }
     );
@@ -140,7 +140,7 @@ async function scrapeGoogle(url) {
 
     const data = await response.json();
 
-    // Outscraper returns data[0].reviews array
+    // Outscraper: data[0] = place, data[0].reviews = array of reviews
     const placeData = data?.data?.[0] || data?.[0];
     const pageReviews = placeData?.reviews || placeData?.reviews_data || [];
 
@@ -157,29 +157,28 @@ async function scrapeGoogle(url) {
       });
     }
 
-    // Extract business name from first page
+    // Detect business name on first call
     if (skip === 0 && placeData?.name) {
       reviews._businessName = placeData.name;
     }
 
     if (reviews.length >= MAX_REVIEWS) break;
-    if (pageReviews.length < 20) break;
+    if (pageReviews.length < REVIEWS_PER_PAGE) break; // last page
   }
 
   return reviews;
 }
 
 async function scrapeTripAdvisor(url) {
-  // Using Tripadvisor Scraper by Chetan11dev on RapidAPI
+  // Using "Tripadvisor Scraper" by Chetan11dev on RapidAPI
+  // Host: tripadvisor-scraper.p.rapidapi.com
+  // Endpoint: GET /reviews — param: query (URL, numeric ID ou nom), page (1-based, 30/page)
   const reviews = [];
+  const encodedUrl = encodeURIComponent(url);
 
-  for (let page = 0; page < MAX_PAGES; page++) {
-    // TripAdvisor uses offset-based pagination (0, 10, 20…)
-    const offset = page * 10;
-    const encodedUrl = encodeURIComponent(url);
-
+  for (let page = 1; page <= MAX_PAGES; page++) {
     const response = await fetch(
-      `https://tripadvisor-scraper.p.rapidapi.com/reviews?url=${encodedUrl}&offset=${offset}`,
+      `https://tripadvisor-scraper.p.rapidapi.com/reviews?query=${encodedUrl}&page=${page}`,
       {
         headers: {
           'X-RapidAPI-Key': RAPIDAPI_KEY,
@@ -189,28 +188,29 @@ async function scrapeTripAdvisor(url) {
     );
 
     if (!response.ok) {
-      if (page === 0) throw new Error(`TripAdvisor API erreur: ${response.status}`);
+      if (page === 1) throw new Error(`TripAdvisor API erreur: ${response.status}`);
       break;
     }
 
     const data = await response.json();
+    // API returns { reviews: [...] } or array directly
     const pageReviews = data?.reviews || data?.data || (Array.isArray(data) ? data : []);
 
     if (!pageReviews.length) break;
 
     for (const r of pageReviews) {
       reviews.push({
-        author: r.username || r.author || r.name || 'Anonyme',
+        author: r.username || r.user?.username || r.author || r.name || 'Anonyme',
         rating: parseFloat(r.rating || r.bubbleRating || r.score || 0),
         title: r.title || r.headline || '',
-        text: r.text || r.review || r.content || r.reviewText || '',
-        date: r.date || r.publishedDate || r.createdAt || '',
+        text: r.text || r.review || r.content || r.reviewText || r.body || '',
+        date: r.date || r.publishedDate || r.createdAt || r.published_date || '',
         verified: false,
       });
     }
 
     if (reviews.length >= MAX_REVIEWS) break;
-    if (pageReviews.length < 10) break;
+    if (pageReviews.length < 30) break; // less than full page = last page
   }
 
   return reviews;
