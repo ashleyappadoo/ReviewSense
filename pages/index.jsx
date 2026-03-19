@@ -34,7 +34,7 @@ const ANALYZING_STEPS = [
   { icon: '🔗', label: 'Connexion à la plateforme…' },
   { icon: '📥', label: 'Extraction des avis…' },
   { icon: '📄', label: 'Récupération des pages…' },
-  { icon: '🧠', label: 'Analyse par Claude AI…' },
+  { icon: '🧠', label: 'Analyse par ReviewSense…' },
   { icon: '📊', label: 'Génération du rapport…' },
 ];
 
@@ -49,6 +49,7 @@ export default function Home() {
   const [error, setError] = useState('');
   const [history, setHistory] = useState([]);
   const [analyzingStep, setAnalyzingStep] = useState(0);
+  const [lang, setLang] = useState('fr');
 
   useEffect(() => {
     try {
@@ -132,6 +133,7 @@ export default function Home() {
           businessName: finalBusinessName,
           totalReviews: scrapeData.totalReviews,
           avgRating: scrapeData.avgRating,
+          lang,
         }),
       });
       const analysisData = await analyzeRes.json();
@@ -447,6 +449,15 @@ export default function Home() {
                     {s.icon} {s.label}
                   </button>
                 ))}
+              </div>
+            </div>
+
+            {/* Language */}
+            <div className="card">
+              <div className="card-title">🌍 Langue du rapport</div>
+              <div className="pill-grid">
+                <button className={`pill-option ${lang==='fr'?'selected':''}`} onClick={()=>setLang('fr')}>🇫🇷 Français</button>
+                <button className={`pill-option ${lang==='en'?'selected':''}`} onClick={()=>setLang('en')}>🇬🇧 English</button>
               </div>
             </div>
 
