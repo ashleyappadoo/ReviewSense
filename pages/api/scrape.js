@@ -21,10 +21,11 @@ export function detectPlatform(input) {
     const str = input.toLowerCase();
     if (str.includes('amazon.'))      return 'amazon';
     if (str.includes('tripadvisor.')) return 'tripadvisor';
+    // Google Maps : supporte tous les domaines (google.com, google.fr, google.de, etc.)
     if (
-      str.includes('google.com/maps') ||
-      str.includes('maps.google.')    ||
-      str.includes('maps.app.goo.gl') ||
+      /google\.[a-z.]+\/maps/.test(str) ||
+      str.includes('maps.google.')       ||
+      str.includes('maps.app.goo.gl')    ||
       str.includes('g.page')
     ) return 'google';
     return null;
@@ -62,11 +63,15 @@ function extractAmazonGeoCode(url) {
 }
 
 function extractGooglePlaceName(url) {
-  // Extrait le nom depuis /maps/place/Nom+Du+Lieu/
+  // Supporte google.com, google.fr, google.de, etc.
+  // Patterns : /maps/place/Nom+Du+Lieu/ ou /maps/place/Nom%20Du%20Lieu/
   try {
-    const match = url.match(/\/maps\/place\/([^/@?]+)/);
+    const match = url.match(/\/maps\/place\/([^/@?#]+)/);
     if (match) {
-      return decodeURIComponent(match[1].replace(/\+/g, ' '));
+      return decodeURIComponent(match[1])
+        .replace(/\+/g, ' ')   // + → espace
+        .replace(/\s+-\s+/g, ' - ')  // normalise les tirets
+        .trim();
     }
   } catch {}
   return null;
@@ -137,34 +142,55 @@ async function scrapeAmazon(url) {
 
   const geoCode = extractAmazonGeoCode(url);
 
-  const response = await fetch(
+  // L'API supporte deux endpoints selon la version souscrite
+  // On essaie /getAmazReviews en premier, puis / en fallback
+  let data = null;
+
+  const endpoints = [
     `https://amazon-review-scraping.p.rapidapi.com/getAmazReviews?productId=${asin}&geoCode=${geoCode}`,
-    {
+    `https://amazon-review-scraping.p.rapidapi.com/?asin=${asin}&page=1&country=${geoCode}`,
+  ];
+
+  for (const endpoint of endpoints) {
+    const response = await fetch(endpoint, {
       headers: {
         'X-RapidAPI-Key':  RAPIDAPI_KEY,
         'X-RapidAPI-Host': 'amazon-review-scraping.p.rapidapi.com',
       },
+    });
+
+    if (response.ok) {
+      data = await response.json();
+      console.log('[Amazon] endpoint OK:', endpoint);
+      console.log('[Amazon] response keys:', Object.keys(data || {}));
+      break;
     }
-  );
+    console.log('[Amazon] endpoint failed:', response.status, endpoint);
+  }
 
-  if (!response.ok) throw new Error(`Amazon API erreur ${response.status}`);
+  if (!data) throw new Error('Amazon API inaccessible. Vérifiez votre abonnement RapidAPI.');
 
-  const data = await response.json();
+  // Normalisation flexible — log pour debug
+  console.log('[Amazon] data structure:', JSON.stringify(data).substring(0, 300));
 
-  // Normalisation flexible selon structure retournée
-  const raw = data?.reviews || data?.data || data?.results || (Array.isArray(data) ? data : []);
+  const raw = data?.reviews
+    || data?.data
+    || data?.results
+    || data?.customerReviews
+    || data?.Items
+    || (Array.isArray(data) ? data : []);
 
   const reviews = [];
   for (const r of raw) {
-    const text = r.body || r.text || r.content || r.review || r.reviewText || '';
+    const text = r.body || r.text || r.content || r.review || r.reviewText || r.reviewBody || '';
     if (!text.trim()) continue;
     reviews.push({
-      author:   r.author || r.reviewer || r.name || 'Anonyme',
-      rating:   parseFloat(r.rating || r.stars || r.score || 0),
-      title:    r.title || r.headline || '',
+      author:   r.author || r.reviewer || r.reviewerName || r.name || 'Anonyme',
+      rating:   parseFloat(r.rating || r.stars || r.score || r.overallRating || 0),
+      title:    r.title || r.headline || r.reviewTitle || '',
       text,
-      date:     r.date || r.verified_date || r.published_at || '',
-      verified: r.verified_purchase ?? r.verified ?? false,
+      date:     r.date || r.verified_date || r.published_at || r.reviewDate || '',
+      verified: r.verified_purchase ?? r.verifiedPurchase ?? r.verified ?? false,
     });
     if (reviews.length >= MAX_REVIEWS) break;
   }
