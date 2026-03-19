@@ -51,16 +51,6 @@ function extractAmazonAsin(url) {
   return null;
 }
 
-function extractAmazonGeoCode(url) {
-  // API supporte uniquement 'us' et 'de'
-  try {
-    const host = new URL(url).hostname;
-    if (host.includes('amazon.de')) return 'de';
-    return 'us'; // fallback pour .fr, .com, .co.uk, etc.
-  } catch {
-    return 'us';
-  }
-}
 
 function extractGooglePlaceName(url) {
   // Supporte google.com, google.fr, google.de, etc.
@@ -131,92 +121,78 @@ async function scrapeTripAdvisor(url) {
 }
 
 // ─── Scraper Amazon ───────────────────────────────────────────────────────────
-// Endpoint réel : GET /getAmazReviews?productId=ASIN&geoCode=us|de
-// Pas de pagination documentée — on fait 1 appel
+// API : Realtime Amazon Data (jobykjoseph10) sur RapidAPI
+// Host : realtime-amazon-data.p.rapidapi.com
+// Endpoint : GET /product-reviews?asin=ASIN&country=fr
+// Supporte : us, ca, uk, de, fr, it, es, mx, be, pl, au, br, nl, sg...
 
 async function scrapeAmazon(url) {
   const asin = extractAmazonAsin(url);
   if (!asin) throw new Error(
-    'ASIN Amazon introuvable. Vérifiez que l\'URL pointe vers une page produit (ex: amazon.com/dp/B09XXXXXX).'
+    "ASIN Amazon introuvable. Vérifiez que l\'URL pointe vers une page produit (ex: amazon.fr/dp/B09XXXXXX)."
   );
 
-  const geoCode = extractAmazonGeoCode(url);
+  // Détecte le pays depuis le domaine Amazon
+  const countryMap = {
+    'amazon.fr': 'fr', 'amazon.de': 'de', 'amazon.co.uk': 'uk',
+    'amazon.it': 'it', 'amazon.es': 'es', 'amazon.ca': 'ca',
+    'amazon.com.au': 'au', 'amazon.co.jp': 'jp', 'amazon.com.br': 'br',
+    'amazon.nl': 'nl', 'amazon.pl': 'pl', 'amazon.se': 'se',
+  };
+  let country = 'us';
+  try {
+    const host = new URL(url).hostname.replace('www.', '');
+    country = countryMap[host] || 'us';
+  } catch {}
 
-  // L'API supporte deux endpoints selon la version souscrite
-  // On essaie /getAmazReviews en premier, puis / en fallback
-  let data = null;
-
-  const endpoints = [
-    `https://amazon-review-scraping.p.rapidapi.com/getAmazReviews?productId=${asin}&geoCode=${geoCode}`,
-    `https://amazon-review-scraping.p.rapidapi.com/?asin=${asin}&page=1&country=${geoCode}`,
-  ];
-
-  for (const endpoint of endpoints) {
-    const response = await fetch(endpoint, {
-      headers: {
-        'X-RapidAPI-Key':  RAPIDAPI_KEY,
-        'X-RapidAPI-Host': 'amazon-review-scraping.p.rapidapi.com',
-      },
-    });
-
-    if (response.ok) {
-      data = await response.json();
-      console.log('[Amazon] endpoint OK:', endpoint);
-      console.log('[Amazon] response keys:', Object.keys(data || {}));
-      break;
-    }
-    console.log('[Amazon] endpoint failed:', response.status, endpoint);
-  }
-
-  if (!data) throw new Error('Amazon API inaccessible. Vérifiez votre abonnement RapidAPI.');
-
-  // Log complet pour identifier la vraie structure
-  console.log('[Amazon] FULL RESPONSE:', JSON.stringify(data).substring(0, 1500));
-  console.log('[Amazon] top-level keys:', Object.keys(data || {}));
-  if (Array.isArray(data)) {
-    console.log('[Amazon] is direct array, length:', data.length);
-    if (data[0]) console.log('[Amazon] first item keys:', Object.keys(data[0]));
-  } else {
-    for (const key of Object.keys(data || {})) {
-      if (Array.isArray(data[key])) {
-        console.log('[Amazon] array at key ' + JSON.stringify(key) + ' length:', data[key].length);
-        if (data[key][0]) console.log('[Amazon] ' + JSON.stringify(key) + '[0] keys:', Object.keys(data[key][0]));
-      }
-    }
-  }
-
-  // Cherche les avis dans toutes les clés possibles
-  let raw = data?.reviews || data?.data || data?.results || data?.customerReviews || data?.Items || data?.reviewsList || data?.review_list || (Array.isArray(data) ? data : []);
-
-  // Fallback : premier tableau non vide trouvé dynamiquement
-  if (!raw.length) {
-    for (const key of Object.keys(data || {})) {
-      if (Array.isArray(data[key]) && data[key].length > 0) {
-        console.log('[Amazon] fallback: using array at key', key);
-        raw = data[key];
-        break;
-      }
-    }
-  }
+  console.log('[Amazon] ASIN:', asin, '| country:', country);
 
   const reviews = [];
-  for (const r of raw) {
-    const text = r.body || r.text || r.content || r.review || r.reviewText || r.reviewBody || '';
-    if (!text.trim()) continue;
-    reviews.push({
-      author:   r.author || r.reviewer || r.reviewerName || r.name || 'Anonyme',
-      rating:   parseFloat(r.rating || r.stars || r.score || r.overallRating || 0),
-      title:    r.title || r.headline || r.reviewTitle || '',
-      text,
-      date:     r.date || r.verified_date || r.published_at || r.reviewDate || '',
-      verified: r.verified_purchase ?? r.verifiedPurchase ?? r.verified ?? false,
-    });
+
+  for (let page = 1; page <= MAX_PAGES; page++) {
+    const response = await fetch(
+      `https://realtime-amazon-data.p.rapidapi.com/product-reviews?asin=${asin}&country=${country}&page=${page}`,
+      {
+        headers: {
+          'X-RapidAPI-Key':  RAPIDAPI_KEY,
+          'X-RapidAPI-Host': 'realtime-amazon-data.p.rapidapi.com',
+        },
+      }
+    );
+
+    if (!response.ok) {
+      if (page === 1) throw new Error(`Amazon API erreur ${response.status}`);
+      break;
+    }
+
+    const data = await response.json();
+    console.log('[Amazon] page', page, 'keys:', Object.keys(data || {}));
+
+    // Realtime Amazon Data retourne data.reviews[] ou data.data[]
+    const pageReviews = data?.reviews || data?.data || data?.results || (Array.isArray(data) ? data : []);
+    console.log('[Amazon] page', page, 'reviews found:', pageReviews.length);
+
+    if (!pageReviews.length) break;
+
+    for (const r of pageReviews) {
+      const text = r.review_comment || r.body || r.text || r.content || r.review || r.reviewText || '';
+      if (!text.trim()) continue;
+      reviews.push({
+        author:   r.reviewer_name || r.author || r.reviewer || r.name || 'Anonyme',
+        rating:   parseFloat(r.review_star_rating || r.rating || r.stars || r.score || 0),
+        title:    r.review_title || r.title || r.headline || '',
+        text,
+        date:     r.review_date || r.date || r.published_at || '',
+        verified: r.is_verified_purchase ?? r.verified_purchase ?? r.verified ?? false,
+      });
+    }
+
     if (reviews.length >= MAX_REVIEWS) break;
+    if (pageReviews.length < 10) break; // dernière page
   }
 
   return reviews;
 }
-
 // ─── Scraper Google (Outscraper) ──────────────────────────────────────────────
 // Query = nom établissement + ville (pas l'URL Google Maps directement)
 // On extrait le nom depuis l'URL Maps puis on le passe à Outscraper
