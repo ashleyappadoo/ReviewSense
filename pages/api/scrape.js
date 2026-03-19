@@ -170,15 +170,34 @@ async function scrapeAmazon(url) {
 
   if (!data) throw new Error('Amazon API inaccessible. Vérifiez votre abonnement RapidAPI.');
 
-  // Normalisation flexible — log pour debug
-  console.log('[Amazon] data structure:', JSON.stringify(data).substring(0, 300));
+  // Log complet pour identifier la vraie structure
+  console.log('[Amazon] FULL RESPONSE:', JSON.stringify(data).substring(0, 1500));
+  console.log('[Amazon] top-level keys:', Object.keys(data || {}));
+  if (Array.isArray(data)) {
+    console.log('[Amazon] is direct array, length:', data.length);
+    if (data[0]) console.log('[Amazon] first item keys:', Object.keys(data[0]));
+  } else {
+    for (const key of Object.keys(data || {})) {
+      if (Array.isArray(data[key])) {
+        console.log('[Amazon] array at key ' + JSON.stringify(key) + ' length:', data[key].length);
+        if (data[key][0]) console.log('[Amazon] ' + JSON.stringify(key) + '[0] keys:', Object.keys(data[key][0]));
+      }
+    }
+  }
 
-  const raw = data?.reviews
-    || data?.data
-    || data?.results
-    || data?.customerReviews
-    || data?.Items
-    || (Array.isArray(data) ? data : []);
+  // Cherche les avis dans toutes les clés possibles
+  let raw = data?.reviews || data?.data || data?.results || data?.customerReviews || data?.Items || data?.reviewsList || data?.review_list || (Array.isArray(data) ? data : []);
+
+  // Fallback : premier tableau non vide trouvé dynamiquement
+  if (!raw.length) {
+    for (const key of Object.keys(data || {})) {
+      if (Array.isArray(data[key]) && data[key].length > 0) {
+        console.log('[Amazon] fallback: using array at key', key);
+        raw = data[key];
+        break;
+      }
+    }
+  }
 
   const reviews = [];
   for (const r of raw) {
