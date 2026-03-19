@@ -236,7 +236,7 @@ async function scrapeGoogle(url) {
   for (let page = 1; page <= MAX_PAGES; page++) {
     const offset = (page - 1) * 20;
     const response = await fetch(
-      `https://local-business-data.p.rapidapi.com/business-reviews-v2?business_id=${encodeURIComponent(placeId)}&limit=20&sort_by=most_relevant&region=fr&language=fr&offset=${offset}`,
+      `https://local-business-data.p.rapidapi.com/business-reviews-v2?business_id=${encodeURIComponent(placeId)}&limit=20&sort_by=most_relevant&region=fr&language=fr&offset=${offset}&fields=reviews`,
       {
         headers: {
           'X-RapidAPI-Key':  RAPIDAPI_KEY,
@@ -254,21 +254,25 @@ async function scrapeGoogle(url) {
     console.log('[Google] page', page, 'keys:', Object.keys(data || {}));
 
     // Local Business Data retourne data.data[] avec les reviews
-    const pageReviews = data?.data || data?.reviews || data?.results || (Array.isArray(data) ? data : []);
-    console.log('[Google] page', page, 'reviews:', pageReviews.length);
+    // Structure réelle : { status, data: { reviews: [...], cursor } }
+    const pageReviews = data?.data?.reviews || data?.data || data?.reviews || data?.results || (Array.isArray(data) ? data : []);
+    console.log('[Google] page', page, 'reviews found:', pageReviews.length, '| keys:', Object.keys(data || {}));
+    if (data?.data) console.log('[Google] data.data keys:', Object.keys(data.data || {}));
 
     // Récupère le nom de l'établissement si disponible
+    if (page === 1 && data?.data?.business_name) reviews._businessName = data.data.business_name;
+    if (page === 1 && data?.data?.name) reviews._businessName = data.data.name;
     if (page === 1 && data?.business_name) reviews._businessName = data.business_name;
-    if (page === 1 && data?.name) reviews._businessName = data.name;
 
     if (!pageReviews.length) break;
 
     for (const r of pageReviews) {
+      // Champs réels confirmés depuis l'API Local Business Data
       const text = r.review_text || r.text || r.snippet || r.body || r.content || '';
       if (!text.trim()) continue;
       reviews.push({
-        author: r.author_title || r.reviewer_name || r.name || 'Anonyme',
-        rating: parseFloat(r.review_rating || r.rating || r.stars || 0),
+        author: r.author_name || r.author_title || r.reviewer_name || r.name || 'Anonyme',
+        rating: parseFloat(r.rating || r.review_rating || r.stars || 0),
         title:  '',
         text,
         date:   r.review_datetime_utc || r.published_at || r.date || '',
