@@ -30,12 +30,12 @@ function formatDate(iso) {
   return d.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 }
 
-const ANALYZING_STEPS = [
-  { icon: '🔗', label: {lang==='fr'?'Connexion à la plateforme…':'Connecting to platform…'} },
-  { icon: '📥', label: {lang==='fr'?'Extraction des avis…':'Extracting reviews…'} },
-  { icon: '📄', label: {lang==='fr'?'Récupération des pages…':'Retrieving pages…'} },
-  { icon: '🧠', label: {lang==='fr'?'Analyse par ReviewSense…':'Analyzing with ReviewSense…'} },
-  { icon: '📊', label: {lang==='fr'?'Génération du rapport…':'Generating report…'} },
+const getAnalyzingSteps = (lang) => [
+  { icon: '🔗', label: lang==='fr' ? 'Connexion à la plateforme…' : 'Connecting to platform…' },
+  { icon: '📥', label: lang==='fr' ? 'Extraction des avis…' : 'Extracting reviews…' },
+  { icon: '📄', label: lang==='fr' ? 'Récupération des pages…' : 'Retrieving pages…' },
+  { icon: '🧠', label: lang==='fr' ? 'Analyse par ReviewSense…' : 'Analyzing with ReviewSense…' },
+  { icon: '📊', label: lang==='fr' ? 'Génération du rapport…' : 'Generating report…' },
 ];
 
 export default function Home() {
@@ -103,7 +103,7 @@ export default function Home() {
 
     // Animate steps
     const stepInterval = setInterval(() => {
-      setAnalyzingStep(prev => Math.min(prev + 1, ANALYZING_STEPS.length - 1));
+      setAnalyzingStep(prev => Math.min(prev + 1, 4));
     }, 2200);
 
     try {
@@ -487,7 +487,7 @@ export default function Home() {
             <div className="pulse-orb">🔍</div>
             <h2>{{lang==='fr'?{lang==='fr'?'Analyse en cours…':'Analyzing…'}:'Analyzing…'}}</h2>
             <div className="steps-list">
-              {ANALYZING_STEPS.map((s, i) => (
+              {getAnalyzingSteps(lang).map((s, i) => (
                 <div key={i} className={`step-item ${i < analyzingStep ? 'done' : i === analyzingStep ? 'active' : ''}`}>
                   <span className="step-icon">{i < analyzingStep ? '✓' : s.icon}</span>
                   {s.label}
