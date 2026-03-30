@@ -294,12 +294,13 @@ async function scrapeGoogle(url) {
 // URL exemple : https://www.trustpilot.com/review/www.smileandpay.com
 
 function extractTrustpilotDomain(url) {
-  // Patterns :
-  // https://www.trustpilot.com/review/www.smileandpay.com  → smileandpay.com
-  // https://www.trustpilot.com/review/smileandpay.com      → smileandpay.com
+  // Patterns supportés :
+  // https://www.trustpilot.com/review/www.smileandpay.com   → smileandpay.com
+  // https://fr.trustpilot.com/review/www.smileandpay.com    → smileandpay.com
+  // https://www.trustpilot.com/review/smileandpay.com       → smileandpay.com
   try {
-    const match = url.match(/trustpilot\.com\/review\/(?:www\.)?([^/?#]+)/i);
-    if (match) return match[1];
+    const match = url.match(/trustpilot\.com\/review\/(?:www\.)?([^/?#\s]+)/i);
+    if (match) return match[1].replace(/^www\./, '');
   } catch {}
   return null;
 }
@@ -333,13 +334,15 @@ async function scrapeTrustpilot(url) {
     const data = await response.json();
     console.log('[Trustpilot] page', page, 'keys:', Object.keys(data || {}));
 
-    // Trustpilot API structure — flexible normalization
-    const pageReviews = data?.reviews || data?.data?.reviews || data?.data || (Array.isArray(data) ? data : []);
-    console.log('[Trustpilot] page', page, 'reviews:', pageReviews.length);
+    // Structure réelle : { status, request_id, parameters, data: { reviews: [...] } }
+    const pageReviews = data?.data?.reviews || data?.data || data?.reviews || (Array.isArray(data) ? data : []);
+    console.log('[Trustpilot] page', page, 'reviews:', pageReviews?.length, '| data keys:', Object.keys(data?.data || {}));
 
     // Detect business name
-    if (page === 1 && (data?.company?.name || data?.businessName || data?.name)) {
-      reviews._businessName = data?.company?.name || data?.businessName || data?.name;
+    if (page === 1) {
+      const biz = data?.data?.businessUnit || data?.data?.company || data?.company || {};
+      reviews._businessName = biz?.displayName || biz?.name || data?.businessName || data?.name || null;
+      console.log('[Trustpilot] businessName:', reviews._businessName);
     }
 
     if (!pageReviews.length) break;
@@ -359,7 +362,8 @@ async function scrapeTrustpilot(url) {
     if (reviews.length >= MAX_REVIEWS) break;
 
     // Check if more pages available
-    const totalPages = data?.totalPages || data?.meta?.totalPages || data?.pagination?.totalPages || 999;
+    const totalPages = data?.data?.totalPages || data?.data?.pagination?.totalPages || data?.totalPages || 999;
+    console.log('[Trustpilot] totalPages:', totalPages);
     if (page >= totalPages) break;
     if (pageReviews.length < 20) break;
   }
