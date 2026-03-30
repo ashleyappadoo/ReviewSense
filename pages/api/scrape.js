@@ -308,72 +308,91 @@ function extractTrustpilotDomain(url) {
   return null;
 }
 
+function extractTrustpilotLocale(url) {
+  // Détecte la locale depuis le sous-domaine de l'URL Trustpilot
+  // fr.trustpilot.com → fr-FR, de.trustpilot.com → de-DE, etc.
+  const localeMap = {
+    'fr': 'fr-FR', 'de': 'de-DE', 'es': 'es-ES', 'it': 'it-IT',
+    'nl': 'nl-NL', 'pl': 'pl-PL', 'pt': 'pt-BR', 'da': 'da-DK',
+    'fi': 'fi-FI', 'nb': 'nb-NO', 'ja': 'ja-JP',
+  };
+  try {
+    const subdomain = new URL(url).hostname.split('.')[0]; // 'fr', 'www', 'de'...
+    return localeMap[subdomain] || null; // null = pas de filtre locale (en-US par défaut)
+  } catch { return null; }
+}
+
 async function scrapeTrustpilot(url) {
   const domain = extractTrustpilotDomain(url);
   if (!domain) throw new Error(
     "Impossible d'extraire le domaine depuis l'URL Trustpilot. Format attendu : trustpilot.com/review/votresite.com"
   );
 
-  console.log('[Trustpilot] domain:', domain);
+  const locale = extractTrustpilotLocale(url);
+  console.log('[Trustpilot] domain:', domain, '| detected locale:', locale || 'none');
+
+  // Multi-locale pour maximiser la couverture :
+  // www.trustpilot.com sans locale → on tente en-US + fr-FR + de-DE
+  // fr.trustpilot.com → locale=fr-FR uniquement
+  const localesToFetch = locale ? [locale] : ['en-US', 'fr-FR', 'de-DE'];
+  const pagesPerLocale = Math.max(1, Math.ceil(MAX_PAGES / localesToFetch.length));
 
   const reviews = [];
+  const seenIds = new Set();
 
-  for (let page = 1; page <= MAX_PAGES; page++) {
-    const response = await fetch(
-      `https://trustpilot-company-and-reviews-data.p.rapidapi.com/company-reviews?company_domain=${encodeURIComponent(domain)}&date_posted=any&page=${page}`,
-      {
-        headers: {
-          'X-RapidAPI-Key':  RAPIDAPI_KEY,
-          'X-RapidAPI-Host': 'trustpilot-company-and-reviews-data.p.rapidapi.com',
-        },
-      }
-    );
-
-    if (!response.ok) {
-      if (page === 1) throw new Error(`Trustpilot API erreur ${response.status}`);
-      break;
-    }
-
-    const data = await response.json();
-    console.log('[Trustpilot] page', page, 'keys:', Object.keys(data || {}));
-
-    // Structure réelle : { status, request_id, parameters, data: { reviews: [...] } }
-    const pageReviews = data?.data?.reviews || data?.data || data?.reviews || (Array.isArray(data) ? data : []);
-    console.log('[Trustpilot] page', page, '| status:', data?.status, '| data type:', typeof data?.data, '| data keys:', Object.keys(data?.data || {}));
-    console.log('[Trustpilot] reviews found:', pageReviews?.length, '| total_reviews:', data?.data?.total_reviews);
-
-    // Detect business name
-    if (page === 1) {
-      const biz = data?.data?.businessUnit || data?.data?.company || data?.company || {};
-      reviews._businessName = biz?.displayName || biz?.name || data?.businessName || data?.name || null;
-      console.log('[Trustpilot] businessName:', reviews._businessName);
-    }
-
-    if (!pageReviews.length) break;
-
-    for (const r of pageReviews) {
-      // Champs réels confirmés depuis l'API Trustpilot :
-      // review_text, review_rating, consumer_name, review_title, review_time
-      const text = r.review_text || r.text || r.content || r.body || '';
-      if (!text.trim()) continue;
-      reviews.push({
-        author: r.consumer_name || r.consumer?.displayName || r.author || r.name || 'Anonyme',
-        rating: parseFloat(r.review_rating || r.rating || r.stars || 0),
-        title:  r.review_title || r.title || r.headline || '',
-        text,
-        date:   r.review_time || r.dates?.publishedDate || r.date || r.createdAt || '',
-      });
-    }
-
+  for (const currentLocale of localesToFetch) {
     if (reviews.length >= MAX_REVIEWS) break;
 
-    // Check if more pages available
-    // Trustpilot: 20 reviews/page, total in data.total_reviews
-    const totalReviews = data?.data?.total_reviews || 0;
-    const totalPages = Math.ceil(totalReviews / 20) || 999;
-    console.log('[Trustpilot] totalPages:', totalPages, '| totalReviews:', totalReviews);
-    if (page >= totalPages) break;
-    if (pageReviews.length < 20) break;
+    for (let page = 1; page <= pagesPerLocale; page++) {
+      const response = await fetch(
+        `https://trustpilot-company-and-reviews-data.p.rapidapi.com/company-reviews?company_domain=${encodeURIComponent(domain)}&date_posted=any&locale=${currentLocale}&page=${page}`,
+        {
+          headers: {
+            'X-RapidAPI-Key':  RAPIDAPI_KEY,
+            'X-RapidAPI-Host': 'trustpilot-company-and-reviews-data.p.rapidapi.com',
+          },
+        }
+      );
+
+      if (!response.ok) {
+        if (page === 1) console.log('[Trustpilot] API error', response.status, 'for locale', currentLocale);
+        break;
+      }
+
+      const data = await response.json();
+      const pageReviews = data?.data?.reviews || data?.reviews || (Array.isArray(data) ? data : []);
+      const totalReviews = data?.data?.total_reviews || 0;
+      const totalPages = Math.ceil(totalReviews / 20) || 1;
+
+      console.log('[Trustpilot] locale:', currentLocale, '| page:', page, '| found:', pageReviews.length, '| total:', totalReviews);
+
+      // Business name
+      if (page === 1 && !reviews._businessName) {
+        const biz = data?.data?.businessUnit || data?.data?.company || {};
+        reviews._businessName = biz?.displayName || biz?.name || null;
+      }
+
+      if (!pageReviews.length) break;
+
+      for (const r of pageReviews) {
+        const text = r.review_text || r.text || r.content || r.body || '';
+        if (!text.trim()) continue;
+        const rid = r.review_id || text.substring(0, 40);
+        if (seenIds.has(rid)) continue;
+        seenIds.add(rid);
+        reviews.push({
+          author: r.consumer_name || r.author || r.name || 'Anonyme',
+          rating: parseFloat(r.review_rating || r.rating || r.stars || 0),
+          title:  r.review_title || r.title || '',
+          text,
+          date:   r.review_time || r.date || r.createdAt || '',
+        });
+      }
+
+      if (reviews.length >= MAX_REVIEWS) break;
+      if (page >= totalPages) break;
+      if (pageReviews.length < 20) break;
+    }
   }
 
   return reviews;
@@ -446,6 +465,9 @@ export default async function handler(req, res) {
 
   } catch (error) {
     console.error('Scrape error:', error);
+    return res.status(500).json({ error: error.message || 'Erreur lors de la récupération des avis.' });
+  }
+}
     return res.status(500).json({ error: error.message || 'Erreur lors de la récupération des avis.' });
   }
 }
