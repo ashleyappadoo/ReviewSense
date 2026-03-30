@@ -61,7 +61,7 @@ function extractGooglePlaceName(url) {
     const match = url.match(/\/maps\/place\/([^/@?#]+)/);
     if (match) {
       return decodeURIComponent(match[1])
-        .replace(/\+/g, ' ')   // + → espace
+        .replace(/\+/g, ' ')   // + => espace
         .replace(/\s+-\s+/g, ' - ')  // normalise les tirets
         .trim();
     }
@@ -298,9 +298,9 @@ function extractTrustpilotDomain(url) {
   // car certaines entreprises sont indexées avec www. (ex: www.smileandpay.com)
   // et d'autres sans (ex: gossby.com, sumup.com)
   //
-  // https://www.trustpilot.com/review/www.smileandpay.com  → www.smileandpay.com ✓
-  // https://fr.trustpilot.com/review/gossby.com            → gossby.com ✓
-  // https://www.trustpilot.com/review/sumup.com            → sumup.com ✓
+  // https://www.trustpilot.com/review/www.smileandpay.com  => www.smileandpay.com OK
+  // https://fr.trustpilot.com/review/gossby.com            => gossby.com OK
+  // https://www.trustpilot.com/review/sumup.com            => sumup.com OK
   try {
     const match = url.match(/trustpilot\.com\/review\/([^/?#\s]+)/i);
     if (match) return match[1]; // conserve www. si présent
@@ -310,7 +310,7 @@ function extractTrustpilotDomain(url) {
 
 function extractTrustpilotLocale(url) {
   // Détecte la locale depuis le sous-domaine de l'URL Trustpilot
-  // fr.trustpilot.com → fr-FR, de.trustpilot.com → de-DE, etc.
+  // fr.trustpilot.com => fr-FR, de.trustpilot.com => de-DE, etc.
   const localeMap = {
     'fr': 'fr-FR', 'de': 'de-DE', 'es': 'es-ES', 'it': 'it-IT',
     'nl': 'nl-NL', 'pl': 'pl-PL', 'pt': 'pt-BR', 'da': 'da-DK',
@@ -332,8 +332,8 @@ async function scrapeTrustpilot(url) {
   console.log('[Trustpilot] domain:', domain, '| detected locale:', locale || 'none');
 
   // Multi-locale pour maximiser la couverture :
-  // www.trustpilot.com sans locale → on tente en-US + fr-FR + de-DE
-  // fr.trustpilot.com → locale=fr-FR uniquement
+  // www.trustpilot.com sans locale => on tente en-US + fr-FR + de-DE
+  // fr.trustpilot.com => locale=fr-FR uniquement
   const localesToFetch = locale ? [locale] : ['en-US', 'fr-FR', 'de-DE'];
   const pagesPerLocale = Math.max(1, Math.ceil(MAX_PAGES / localesToFetch.length));
 
@@ -465,9 +465,6 @@ export default async function handler(req, res) {
 
   } catch (error) {
     console.error('Scrape error:', error);
-    return res.status(500).json({ error: error.message || 'Erreur lors de la récupération des avis.' });
-  }
-}
     return res.status(500).json({ error: error.message || 'Erreur lors de la récupération des avis.' });
   }
 }
