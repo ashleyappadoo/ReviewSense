@@ -294,13 +294,16 @@ async function scrapeGoogle(url) {
 // URL exemple : https://www.trustpilot.com/review/www.smileandpay.com
 
 function extractTrustpilotDomain(url) {
-  // Patterns supportés :
-  // https://www.trustpilot.com/review/www.smileandpay.com   → smileandpay.com
-  // https://fr.trustpilot.com/review/www.smileandpay.com    → smileandpay.com
-  // https://www.trustpilot.com/review/smileandpay.com       → smileandpay.com
+  // On garde le domaine EXACTEMENT comme dans l'URL Trustpilot
+  // car certaines entreprises sont indexées avec www. (ex: www.smileandpay.com)
+  // et d'autres sans (ex: gossby.com, sumup.com)
+  //
+  // https://www.trustpilot.com/review/www.smileandpay.com  → www.smileandpay.com ✓
+  // https://fr.trustpilot.com/review/gossby.com            → gossby.com ✓
+  // https://www.trustpilot.com/review/sumup.com            → sumup.com ✓
   try {
-    const match = url.match(/trustpilot\.com\/review\/(?:www\.)?([^/?#\s]+)/i);
-    if (match) return match[1].replace(/^www\./, '');
+    const match = url.match(/trustpilot\.com\/review\/([^/?#\s]+)/i);
+    if (match) return match[1]; // conserve www. si présent
   } catch {}
   return null;
 }
