@@ -1,16 +1,19 @@
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import Head from 'next/head';
 
 const PLATFORMS = {
   amazon:      { label: 'Amazon',            icon: '📦' },
   google:      { label: 'Google My Business', icon: '⭐' },
   tripadvisor: { label: 'TripAdvisor',        icon: '🦉' },
+  trustpilot:  { label: 'Trustpilot',         icon: '🟢' },
 };
 
 const URL_PATTERNS = {
   amazon:      /amazon\./i,
   tripadvisor: /tripadvisor\./i,
   google:      /google\.[a-z.]+\/maps|maps\.google\.|maps\.app\.goo\.gl|g\.page/i,
+  trustpilot:  /trustpilot\./i,
 };
 
 const T = {
@@ -18,7 +21,7 @@ const T = {
     tagline:       '✦ Analyse d\'avis par IA',
     heroTitle:     'Collez une URL.',
     heroHighlight: 'Obtenez vos insights.',
-    heroSub:       'ReviewSense extrait automatiquement vos avis Amazon, Google ou TripAdvisor et génère un rapport actionnable en 30 secondes.',
+    heroSub:       'ReviewSense extrait automatiquement vos avis Amazon, Google, TripAdvisor ou Trustpilot et génère un rapport actionnable en 30 secondes.',
     ctaAnalyze:    'Analyser mes avis',
     ctaHistory:    'Mes analyses',
     featExtract:   '⚡ Extraction automatique',
@@ -31,7 +34,7 @@ const T = {
     urlLabel:      'URL DE LA PAGE D\'AVIS',
     urlPlaceholder:'https://...',
     urlDetected:   'détecté — prêt à extraire',
-    urlError:      'Plateforme non supportée. Utilisez Amazon, Google Maps ou TripAdvisor.',
+    urlError:      'Plateforme non supportée. Utilisez Amazon, Google Maps, TripAdvisor ou Trustpilot.',
     sectorLabel:   'SECTEUR',
     sectorOpt:     '(optionnel, améliore l\'analyse)',
     ecommerce:     '🛍️ E-commerce',
@@ -72,7 +75,7 @@ const T = {
     tagline:       '✦ AI-powered review analysis',
     heroTitle:     'Paste a URL.',
     heroHighlight: 'Get your insights.',
-    heroSub:       'ReviewSense automatically extracts your Amazon, Google or TripAdvisor reviews and generates an actionable report in 30 seconds.',
+    heroSub:       'ReviewSense automatically extracts your Amazon, Google, TripAdvisor or Trustpilot reviews and generates an actionable report in 30 seconds.',
     ctaAnalyze:    'Analyze my reviews',
     ctaHistory:    'My analyses',
     featExtract:   '⚡ Auto extraction',
@@ -85,7 +88,7 @@ const T = {
     urlLabel:      'REVIEWS PAGE URL',
     urlPlaceholder:'https://...',
     urlDetected:   'detected — ready to extract',
-    urlError:      'Platform not supported. Use Amazon, Google Maps or TripAdvisor.',
+    urlError:      'Platform not supported. Use Amazon, Google Maps, TripAdvisor or Trustpilot.',
     sectorLabel:   'SECTOR',
     sectorOpt:     '(optional, improves analysis)',
     ecommerce:     '🛍️ E-commerce',
@@ -226,10 +229,14 @@ export default function Home() {
   return (
     <>
       <Head>
-        <title>ReviewSense — {t.tagline}</title>
-        <meta name="description" content={t.heroSub} />
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+        <title>ReviewSense — Analyse d'avis clients par IA pour TPE et PME</title>
+        <meta name="description" content="Analysez automatiquement vos avis Google My Business, Amazon et TripAdvisor. Obtenez des insights actionnables en 30 secondes grâce à l'IA. Outil gratuit par ONA." />
+        <meta name="keywords" content="analyse avis clients, Google My Business, TripAdvisor, Amazon reviews, e-réputation, TPE PME, intelligence artificielle" />
+        <meta property="og:title" content="ReviewSense — Analyse d'avis clients par IA" />
+        <meta property="og:description" content="Collez une URL. Obtenez vos insights clients en 30 secondes. Outil gratuit pour TPE et PME par ONA." />
+        <meta property="og:url" content="https://reviewsense.vercel.app" />
+        <meta name="twitter:title" content="ReviewSense — Analyse d'avis clients par IA" />
+        <meta name="twitter:description" content="Analysez vos avis Google, Amazon et TripAdvisor automatiquement." />
       </Head>
 
       <style jsx global>{`
@@ -406,6 +413,7 @@ export default function Home() {
               <div className="platform-pill">📦 Amazon</div>
               <div className="platform-pill">⭐ Google My Business</div>
               <div className="platform-pill">🦉 TripAdvisor</div>
+              <div className="platform-pill">🟢 Trustpilot</div>
             </div>
             <div className="features-row">
               <div className="feat-pill">{t.featExtract}</div>
@@ -579,6 +587,56 @@ export default function Home() {
             </div>
           </div>
         )}
+      {/* FOOTER ONA */}
+        <footer style={{
+          borderTop: '1px solid rgba(197,184,248,0.25)',
+          background: 'rgba(250,248,255,0.8)',
+          backdropFilter: 'blur(12px)',
+          padding: '40px 48px',
+          marginTop: 'auto',
+        }}>
+          <div style={{maxWidth:'900px', margin:'0 auto', display:'flex', flexWrap:'wrap', gap:'40px', justifyContent:'space-between', alignItems:'flex-start'}}>
+            <div style={{flex:'1', minWidth:'220px'}}>
+              <div style={{fontFamily:"'Bricolage Grotesque',sans-serif", fontSize:'1.2rem', fontWeight:800, background:'linear-gradient(135deg,#7c5cbf,#d4609a)', WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent', backgroundClip:'text', marginBottom:'8px'}}>
+                Review<span style={{background:'linear-gradient(135deg,#d4609a,#f4a261)', WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent', backgroundClip:'text'}}>Sense</span>
+              </div>
+              <p style={{fontSize:'0.82rem', color:'#7a6d8a', lineHeight:'1.6', maxWidth:'260px'}}>
+                Un outil digital d'aide aux TPE, PME et entrepreneurs indépendants pour analyser leur réputation en ligne.
+              </p>
+              <p style={{fontSize:'0.75rem', color:'#b0a5c0', marginTop:'12px'}}>
+                Conçu et développé par <a href="https://ona-action.fr" target="_blank" rel="noreferrer" style={{color:'#7c5cbf', fontWeight:600, textDecoration:'none'}}>ONA</a> — Association loi 1901 · Bordeaux
+              </p>
+            </div>
+            <div style={{display:'flex', gap:'48px', flexWrap:'wrap'}}>
+              <div>
+                <div style={{fontSize:'0.72rem', fontWeight:700, letterSpacing:'1.5px', textTransform:'uppercase', color:'#b0a5c0', marginBottom:'12px'}}>Outil</div>
+                <div style={{display:'flex', flexDirection:'column', gap:'8px'}}>
+                  <Link href="/" style={{fontSize:'0.85rem', color:'#7a6d8a', textDecoration:'none'}}>Analyser mes avis</Link>
+                  <Link href="/a-propos" style={{fontSize:'0.85rem', color:'#7a6d8a', textDecoration:'none'}}>À propos</Link>
+                  <Link href="/contact" style={{fontSize:'0.85rem', color:'#7a6d8a', textDecoration:'none'}}>Contact</Link>
+                </div>
+              </div>
+              <div>
+                <div style={{fontSize:'0.72rem', fontWeight:700, letterSpacing:'1.5px', textTransform:'uppercase', color:'#b0a5c0', marginBottom:'12px'}}>Légal</div>
+                <div style={{display:'flex', flexDirection:'column', gap:'8px'}}>
+                  <Link href="/mentions-legales" style={{fontSize:'0.85rem', color:'#7a6d8a', textDecoration:'none'}}>Mentions légales</Link>
+                  <Link href="/politique-confidentialite" style={{fontSize:'0.85rem', color:'#7a6d8a', textDecoration:'none'}}>Politique de confidentialité</Link>
+                </div>
+              </div>
+              <div>
+                <div style={{fontSize:'0.72rem', fontWeight:700, letterSpacing:'1.5px', textTransform:'uppercase', color:'#b0a5c0', marginBottom:'12px'}}>ONA</div>
+                <div style={{display:'flex', flexDirection:'column', gap:'8px'}}>
+                  <a href="https://ona-action.fr" target="_blank" rel="noreferrer" style={{fontSize:'0.85rem', color:'#7a6d8a', textDecoration:'none'}}>ona-action.fr</a>
+                  <a href="mailto:contact@ona-action.fr" style={{fontSize:'0.85rem', color:'#7a6d8a', textDecoration:'none'}}>contact@ona-action.fr</a>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div style={{maxWidth:'900px', margin:'28px auto 0', paddingTop:'20px', borderTop:'1px solid rgba(197,184,248,0.2)', display:'flex', justifyContent:'space-between', flexWrap:'wrap', gap:'8px'}}>
+            <p style={{fontSize:'0.75rem', color:'#b0a5c0'}}>© {new Date().getFullYear()} ONA — Organisation Numérique & Automatisation. Tous droits réservés.</p>
+            <p style={{fontSize:'0.75rem', color:'#b0a5c0'}}>Propulsé par Claude AI · RapidAPI · Vercel</p>
+          </div>
+        </footer>
       </div>
     </>
   );
