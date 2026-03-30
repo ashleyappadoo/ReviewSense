@@ -4,7 +4,8 @@
  *
  * TripAdvisor : résultats dans data.results[], 20/page, pagination par data.next
  * Amazon      : endpoint /getAmazReviews, params productId + geoCode (us|de uniquement)
- * Google      : Outscraper, query = nom établissement + ville extrait depuis URL Maps
+ * Google      : Local Business Data, place_id extrait depuis URL Maps
+ * Trustpilot  : trustpilot-company-and-reviews-data, domain extrait depuis URL
  */
 
 const RAPIDAPI_KEY = process.env.RAPIDAPI_KEY;
@@ -21,6 +22,7 @@ export function detectPlatform(input) {
     const str = input.toLowerCase();
     if (str.includes('amazon.'))      return 'amazon';
     if (str.includes('tripadvisor.')) return 'tripadvisor';
+    if (str.includes('trustpilot.'))  return 'trustpilot';
     // Google Maps : supporte tous les domaines (google.com, google.fr, google.de, etc.)
     if (
       /google\.[a-z.]+\/maps/.test(str) ||
@@ -285,6 +287,87 @@ async function scrapeGoogle(url) {
 
   return reviews;
 }
+// ─── Scraper Trustpilot ───────────────────────────────────────────────────────
+// API : Trustpilot Company and Reviews Data sur RapidAPI
+// Host : trustpilot-company-and-reviews-data.p.rapidapi.com
+// Endpoint : GET /company-reviews?company_domain=smileandpay.com
+// URL exemple : https://www.trustpilot.com/review/www.smileandpay.com
+
+function extractTrustpilotDomain(url) {
+  // Patterns :
+  // https://www.trustpilot.com/review/www.smileandpay.com  → smileandpay.com
+  // https://www.trustpilot.com/review/smileandpay.com      → smileandpay.com
+  try {
+    const match = url.match(/trustpilot\.com\/review\/(?:www\.)?([^/?#]+)/i);
+    if (match) return match[1];
+  } catch {}
+  return null;
+}
+
+async function scrapeTrustpilot(url) {
+  const domain = extractTrustpilotDomain(url);
+  if (!domain) throw new Error(
+    "Impossible d'extraire le domaine depuis l'URL Trustpilot. Format attendu : trustpilot.com/review/votresite.com"
+  );
+
+  console.log('[Trustpilot] domain:', domain);
+
+  const reviews = [];
+
+  for (let page = 1; page <= MAX_PAGES; page++) {
+    const response = await fetch(
+      `https://trustpilot-company-and-reviews-data.p.rapidapi.com/company-reviews?company_domain=${encodeURIComponent(domain)}&date_posted=any&locale=fr-FR&page=${page}`,
+      {
+        headers: {
+          'X-RapidAPI-Key':  RAPIDAPI_KEY,
+          'X-RapidAPI-Host': 'trustpilot-company-and-reviews-data.p.rapidapi.com',
+        },
+      }
+    );
+
+    if (!response.ok) {
+      if (page === 1) throw new Error(`Trustpilot API erreur ${response.status}`);
+      break;
+    }
+
+    const data = await response.json();
+    console.log('[Trustpilot] page', page, 'keys:', Object.keys(data || {}));
+
+    // Trustpilot API structure — flexible normalization
+    const pageReviews = data?.reviews || data?.data?.reviews || data?.data || (Array.isArray(data) ? data : []);
+    console.log('[Trustpilot] page', page, 'reviews:', pageReviews.length);
+
+    // Detect business name
+    if (page === 1 && (data?.company?.name || data?.businessName || data?.name)) {
+      reviews._businessName = data?.company?.name || data?.businessName || data?.name;
+    }
+
+    if (!pageReviews.length) break;
+
+    for (const r of pageReviews) {
+      const text = r.text || r.review || r.content || r.body || r.reviewText || '';
+      if (!text.trim()) continue;
+      reviews.push({
+        author: r.consumer?.displayName || r.author || r.reviewer || r.name || 'Anonyme',
+        rating: parseFloat(r.rating || r.stars || r.score || 0),
+        title:  r.title || r.headline || '',
+        text,
+        date:   r.dates?.publishedDate || r.date || r.createdAt || r.published_at || '',
+      });
+    }
+
+    if (reviews.length >= MAX_REVIEWS) break;
+
+    // Check if more pages available
+    const totalPages = data?.totalPages || data?.meta?.totalPages || data?.pagination?.totalPages || 999;
+    if (page >= totalPages) break;
+    if (pageReviews.length < 20) break;
+  }
+
+  return reviews;
+}
+
+
 // ─── Normalisation pour Claude ────────────────────────────────────────────────
 
 function reviewsToText(reviews) {
@@ -313,7 +396,7 @@ export default async function handler(req, res) {
 
   const platform = detectPlatform(url);
   if (!platform) return res.status(400).json({
-    error: 'Plateforme non reconnue. ReviewSense supporte Amazon, Google My Business et TripAdvisor.',
+    error: 'Plateforme non reconnue. ReviewSense supporte Amazon, Google My Business, TripAdvisor et Trustpilot.',
   });
 
   try {
@@ -327,6 +410,9 @@ export default async function handler(req, res) {
       detectedName = reviews._businessName || null;
     } else if (platform === 'tripadvisor') {
       reviews = await scrapeTripAdvisor(url);
+    } else if (platform === 'trustpilot') {
+      reviews = await scrapeTrustpilot(url);
+      detectedName = reviews._businessName || null;
     }
 
     if (!reviews.length) return res.status(404).json({
