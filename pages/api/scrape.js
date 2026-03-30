@@ -317,7 +317,7 @@ async function scrapeTrustpilot(url) {
 
   for (let page = 1; page <= MAX_PAGES; page++) {
     const response = await fetch(
-      `https://trustpilot-company-and-reviews-data.p.rapidapi.com/company-reviews?company_domain=${encodeURIComponent(domain)}&date_posted=any&locale=fr-FR&page=${page}`,
+      `https://trustpilot-company-and-reviews-data.p.rapidapi.com/company-reviews?company_domain=${encodeURIComponent(domain)}&date_posted=any&page=${page}`,
       {
         headers: {
           'X-RapidAPI-Key':  RAPIDAPI_KEY,
@@ -336,7 +336,8 @@ async function scrapeTrustpilot(url) {
 
     // Structure réelle : { status, request_id, parameters, data: { reviews: [...] } }
     const pageReviews = data?.data?.reviews || data?.data || data?.reviews || (Array.isArray(data) ? data : []);
-    console.log('[Trustpilot] page', page, 'reviews:', pageReviews?.length, '| data keys:', Object.keys(data?.data || {}));
+    console.log('[Trustpilot] page', page, '| status:', data?.status, '| data type:', typeof data?.data, '| data keys:', Object.keys(data?.data || {}));
+    console.log('[Trustpilot] reviews found:', pageReviews?.length, '| total_reviews:', data?.data?.total_reviews);
 
     // Detect business name
     if (page === 1) {
@@ -348,22 +349,26 @@ async function scrapeTrustpilot(url) {
     if (!pageReviews.length) break;
 
     for (const r of pageReviews) {
-      const text = r.text || r.review || r.content || r.body || r.reviewText || '';
+      // Champs réels confirmés depuis l'API Trustpilot :
+      // review_text, review_rating, consumer_name, review_title, review_time
+      const text = r.review_text || r.text || r.content || r.body || '';
       if (!text.trim()) continue;
       reviews.push({
-        author: r.consumer?.displayName || r.author || r.reviewer || r.name || 'Anonyme',
-        rating: parseFloat(r.rating || r.stars || r.score || 0),
-        title:  r.title || r.headline || '',
+        author: r.consumer_name || r.consumer?.displayName || r.author || r.name || 'Anonyme',
+        rating: parseFloat(r.review_rating || r.rating || r.stars || 0),
+        title:  r.review_title || r.title || r.headline || '',
         text,
-        date:   r.dates?.publishedDate || r.date || r.createdAt || r.published_at || '',
+        date:   r.review_time || r.dates?.publishedDate || r.date || r.createdAt || '',
       });
     }
 
     if (reviews.length >= MAX_REVIEWS) break;
 
     // Check if more pages available
-    const totalPages = data?.data?.totalPages || data?.data?.pagination?.totalPages || data?.totalPages || 999;
-    console.log('[Trustpilot] totalPages:', totalPages);
+    // Trustpilot: 20 reviews/page, total in data.total_reviews
+    const totalReviews = data?.data?.total_reviews || 0;
+    const totalPages = Math.ceil(totalReviews / 20) || 999;
+    console.log('[Trustpilot] totalPages:', totalPages, '| totalReviews:', totalReviews);
     if (page >= totalPages) break;
     if (pageReviews.length < 20) break;
   }
