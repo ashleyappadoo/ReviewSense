@@ -255,6 +255,8 @@ export default function Home() {
         .lang-btn{padding:5px 12px;border-radius:30px;border:none;font-size:0.8rem;font-weight:700;cursor:pointer;transition:all 0.2s;background:transparent;color:var(--muted)}
         .lang-btn.active{background:linear-gradient(135deg,#7c5cbf,#d4609a);color:white;box-shadow:0 2px 8px rgba(124,92,191,0.3)}
         .nav-badge{font-size:0.72rem;font-weight:700;background:linear-gradient(135deg,var(--lavender),var(--peach));padding:5px 14px;border-radius:20px;color:#5b3ea0}
+        .nav-rdv-btn{display:inline-flex;align-items:center;gap:6px;padding:8px 18px;background:linear-gradient(135deg,#7c5cbf,#d4609a);color:white;font-size:0.82rem;font-weight:700;border-radius:40px;text-decoration:none;transition:all 0.2s;box-shadow:0 3px 12px rgba(124,92,191,0.3);white-space:nowrap}
+        .nav-rdv-btn:hover{transform:translateY(-1px);box-shadow:0 5px 18px rgba(124,92,191,0.45)}
         .landing{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 24px;text-align:center;gap:36px}
         .hero-tag{display:inline-flex;align-items:center;gap:8px;font-size:0.78rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#7c5cbf;background:rgba(197,184,248,0.22);padding:7px 18px;border-radius:20px;border:1px solid rgba(197,184,248,0.45)}
         h1{font-family:'Bricolage Grotesque',sans-serif;font-size:clamp(2.8rem,6vw,4.4rem);font-weight:800;line-height:1.08;color:var(--text);letter-spacing:-2.5px;max-width:780px}
@@ -386,7 +388,14 @@ export default function Home() {
               <button className={`lang-btn ${lang==='fr'?'active':''}`} onClick={() => setLang('fr')}>🇫🇷 FR</button>
               <button className={`lang-btn ${lang==='en'?'active':''}`} onClick={() => setLang('en')}>🇬🇧 EN</button>
             </div>
-            <div className="nav-badge">✦ AI</div>
+            <a
+              href="https://calendly.com/ona-action/30min"
+              target="_blank"
+              rel="noreferrer"
+              className="nav-rdv-btn"
+            >
+              📅 {lang==='fr' ? 'Prendre RDV' : 'Book a call'}
+            </a>
           </div>
         </nav>
 
