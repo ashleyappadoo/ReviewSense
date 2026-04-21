@@ -10,7 +10,7 @@ const PLATFORMS = {
 };
 
 const URL_PATTERNS = {
-  amazon:      /amazon\./i,
+  amazon:      /amazon\.|amzn\.eu|amzn\.to/i,
   tripadvisor: /tripadvisor\./i,
   google:      /google\.[a-z.]+\/maps|maps\.google\.|maps\.app\.goo\.gl|g\.page/i,
   trustpilot:  /trustpilot\./i,
@@ -596,6 +596,8 @@ export default function Home() {
           marginTop: 'auto',
         }}>
           <div style={{maxWidth:'900px', margin:'0 auto', display:'flex', flexWrap:'wrap', gap:'40px', justifyContent:'space-between', alignItems:'flex-start'}}>
+
+            {/* Logo + description */}
             <div style={{flex:'1', minWidth:'220px'}}>
               <div style={{fontFamily:"'Bricolage Grotesque',sans-serif", fontSize:'1.2rem', fontWeight:800, background:'linear-gradient(135deg,#7c5cbf,#d4609a)', WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent', backgroundClip:'text', marginBottom:'8px'}}>
                 Review<span style={{background:'linear-gradient(135deg,#d4609a,#f4a261)', WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent', backgroundClip:'text'}}>Sense</span>
@@ -604,18 +606,29 @@ export default function Home() {
                 Un outil digital d'aide aux TPE, PME et entrepreneurs indépendants pour analyser leur réputation en ligne.
               </p>
               <p style={{fontSize:'0.75rem', color:'#b0a5c0', marginTop:'12px'}}>
-                Conçu et développé par <a href="https://ona-action.fr" target="_blank" rel="noreferrer" style={{color:'#7c5cbf', fontWeight:600, textDecoration:'none'}}>ONA</a> — Association loi 1901 · Bordeaux
+                Conçu et développé par <a href="https://ona-asso.fr" target="_blank" rel="noreferrer" style={{color:'#7c5cbf', fontWeight:600, textDecoration:'none'}}>ONA</a>
               </p>
             </div>
+
             <div style={{display:'flex', gap:'48px', flexWrap:'wrap'}}>
+
+              {/* Outil */}
               <div>
                 <div style={{fontSize:'0.72rem', fontWeight:700, letterSpacing:'1.5px', textTransform:'uppercase', color:'#b0a5c0', marginBottom:'12px'}}>Outil</div>
                 <div style={{display:'flex', flexDirection:'column', gap:'8px'}}>
                   <Link href="/" style={{fontSize:'0.85rem', color:'#7a6d8a', textDecoration:'none'}}>Analyser mes avis</Link>
                   <Link href="/a-propos" style={{fontSize:'0.85rem', color:'#7a6d8a', textDecoration:'none'}}>À propos</Link>
-                  <Link href="/contact" style={{fontSize:'0.85rem', color:'#7a6d8a', textDecoration:'none'}}>Contact</Link>
+                  <a href="mailto:ona.action@gmail.com" style={{fontSize:'0.85rem', color:'#7a6d8a', textDecoration:'none'}}>Contact</a>
+                  <a href="https://calendly.com/ona-action/30min" target="_blank" rel="noreferrer" style={{
+                    fontSize:'0.82rem', color:'white', textDecoration:'none',
+                    background:'linear-gradient(135deg,#7c5cbf,#d4609a)',
+                    padding:'7px 14px', borderRadius:'20px', fontWeight:600,
+                    display:'inline-block', marginTop:'4px',
+                  }}>📅 Prendre RDV</a>
                 </div>
               </div>
+
+              {/* Légal */}
               <div>
                 <div style={{fontSize:'0.72rem', fontWeight:700, letterSpacing:'1.5px', textTransform:'uppercase', color:'#b0a5c0', marginBottom:'12px'}}>Légal</div>
                 <div style={{display:'flex', flexDirection:'column', gap:'8px'}}>
@@ -623,18 +636,23 @@ export default function Home() {
                   <Link href="/politique-confidentialite" style={{fontSize:'0.85rem', color:'#7a6d8a', textDecoration:'none'}}>Politique de confidentialité</Link>
                 </div>
               </div>
+
+              {/* ONA */}
               <div>
                 <div style={{fontSize:'0.72rem', fontWeight:700, letterSpacing:'1.5px', textTransform:'uppercase', color:'#b0a5c0', marginBottom:'12px'}}>ONA</div>
                 <div style={{display:'flex', flexDirection:'column', gap:'8px'}}>
-                  <a href="https://ona-action.fr" target="_blank" rel="noreferrer" style={{fontSize:'0.85rem', color:'#7a6d8a', textDecoration:'none'}}>ona-action.fr</a>
-                  <a href="mailto:contact@ona-action.fr" style={{fontSize:'0.85rem', color:'#7a6d8a', textDecoration:'none'}}>contact@ona-action.fr</a>
+                  <a href="https://ona-asso.fr" target="_blank" rel="noreferrer" style={{fontSize:'0.85rem', color:'#7a6d8a', textDecoration:'none'}}>ona-asso.fr</a>
+                  <a href="mailto:ona.action@gmail.com" style={{fontSize:'0.85rem', color:'#7a6d8a', textDecoration:'none'}}>ona.action@gmail.com</a>
+                  <a href="https://calendly.com/ona-action/30min" target="_blank" rel="noreferrer" style={{fontSize:'0.85rem', color:'#7a6d8a', textDecoration:'none'}}>Prendre RDV</a>
                 </div>
               </div>
+
             </div>
           </div>
-          <div style={{maxWidth:'900px', margin:'28px auto 0', paddingTop:'20px', borderTop:'1px solid rgba(197,184,248,0.2)', display:'flex', justifyContent:'space-between', flexWrap:'wrap', gap:'8px'}}>
-            <p style={{fontSize:'0.75rem', color:'#b0a5c0'}}>© {new Date().getFullYear()} ONA — Organisation Numérique & Automatisation. Tous droits réservés.</p>
-            <p style={{fontSize:'0.75rem', color:'#b0a5c0'}}>Propulsé par Claude AI · RapidAPI · Vercel</p>
+
+          {/* Bottom bar */}
+          <div style={{maxWidth:'900px', margin:'28px auto 0', paddingTop:'20px', borderTop:'1px solid rgba(197,184,248,0.2)', display:'flex', justifyContent:'center', flexWrap:'wrap', gap:'8px'}}>
+            <p style={{fontSize:'0.75rem', color:'#b0a5c0', textAlign:'center'}}>© {new Date().getFullYear()} ONA — Organisation Numérique & Automatisation. Tous droits réservés.</p>
           </div>
         </footer>
       </div>
